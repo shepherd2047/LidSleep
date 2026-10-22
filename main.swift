@@ -2,7 +2,8 @@ import AppKit
 import ServiceManagement
 
 // Menu bar toggle: whether closing the lid puts the Mac to sleep (pmset disablesleep)
-// Tries a passwordless sudoers rule first (sudo -n), falls back to the system password prompt
+// On first use it asks for the admin password once and installs a sudoers rule that allows
+// only `pmset -a disablesleep 0/1`, so later toggles run via `sudo -n` without prompts
 final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     let toggleItem = NSMenuItem(title: "", action: #selector(toggle), keyEquivalent: "")
@@ -19,6 +20,35 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem(title: "Quit LidSleep", action: #selector(NSApp.terminate), keyEquivalent: "q"))
         item.menu = menu
         refresh()
+        if !hasRule { DispatchQueue.main.async { self.offerSetup() } }
+    }
+
+    let pmsetArgs = ["/usr/bin/pmset", "-a", "disablesleep"]
+
+    var hasRule: Bool {
+        ["0", "1"].allSatisfy { run("/usr/bin/sudo", ["-n", "-l"] + pmsetArgs + [$0]).ok }
+    }
+
+    func offerSetup() {
+        NSApp.activate(ignoringOtherApps: true)
+        let a = NSAlert()
+        a.messageText = "One-time setup"
+        a.informativeText = "macOS needs your admin password to change sleep settings. Enter it once and LidSleep won't ask again.\n\nOnly “pmset -a disablesleep 0/1” is allowed without a password."
+        a.addButton(withTitle: "Continue")
+        a.addButton(withTitle: "Not Now")
+        if a.runModal() == .alertFirstButtonReturn { _ = installRule() }
+    }
+
+    // Returns true if the rule is in place afterwards; false if the user cancelled or it failed
+    func installRule() -> Bool {
+        let rule = "\(NSUserName()) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 0, /usr/bin/pmset -a disablesleep 1\n"
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("lidsleep-sudoers").path
+        guard (try? rule.write(toFile: tmp, atomically: true, encoding: .utf8)) != nil else { return false }
+        defer { try? FileManager.default.removeItem(atPath: tmp) }
+        let cmd = "/usr/sbin/visudo -cf '\(tmp)' && /usr/bin/install -m 440 -o root -g wheel '\(tmp)' /etc/sudoers.d/pmset"
+        let script = "do shell script \"\(cmd)\" with prompt \"LidSleep needs your password once.\" with administrator privileges"
+        NSAppleScript(source: script)?.executeAndReturnError(nil)
+        return hasRule
     }
 
     func menuWillOpen(_ m: NSMenu) { refresh() }
@@ -41,9 +71,8 @@ final class App: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc func toggle() {
         let v = sleepDisabled ? "0" : "1"
-        if run("/usr/bin/sudo", ["-n", "/usr/bin/pmset", "-a", "disablesleep", v]).ok == false {
-            let script = "do shell script \"/usr/bin/pmset -a disablesleep \(v)\" with administrator privileges"
-            NSAppleScript(source: script)?.executeAndReturnError(nil)
+        if hasRule || installRule() {
+            _ = run("/usr/bin/sudo", ["-n"] + pmsetArgs + [v])
         }
         refresh()
     }

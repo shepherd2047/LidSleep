@@ -26,10 +26,10 @@ LidSleep is a tiny menu bar app that flips macOS's `pmset disablesleep` switch, 
 ## ✨ Features
 
 - **One click** toggle from the menu bar, with a checkmark showing the current state
-- **No password prompts** once you add a one-line sudoers rule (optional)
+- **Password once, then never again**: first-run setup, no Terminal needed
 - **Launch at Login** built in
 - **No Dock icon**, no windows, no background daemons
-- **~80 lines of Swift**, no dependencies, no Xcode project
+- **~100 lines of Swift**, no dependencies, no Xcode project
 
 ## 🚀 Install
 
@@ -44,25 +44,25 @@ open ~/Applications/LidSleep.app
 
 `build.sh` compiles `main.swift`, bundles it into `~/Applications/LidSleep.app` and ad-hoc signs it.
 
-## 🔑 Skip the password (optional)
+## 🔑 First run
 
-Changing power settings needs admin rights, so by default macOS asks for your password on every toggle.
-To allow **only these two exact commands** without a password:
+Changing power settings needs admin rights. On first launch LidSleep asks for your password **once** in the standard macOS dialog,
+then installs a sudoers rule at `/etc/sudoers.d/pmset` that allows **only these two exact commands** without a password:
 
-```bash
-echo "$(whoami) ALL=(root) NOPASSWD: /usr/bin/pmset -a disablesleep 0, /usr/bin/pmset -a disablesleep 1" \
-  | sudo tee /etc/sudoers.d/pmset >/dev/null && sudo chmod 440 /etc/sudoers.d/pmset && sudo visudo -c
+```
+/usr/bin/pmset -a disablesleep 0
+/usr/bin/pmset -a disablesleep 1
 ```
 
-You should see `/etc/sudoers.d/pmset: parsed OK`. Any other `pmset` or `sudo` command still requires a password.
-To undo it: `sudo rm /etc/sudoers.d/pmset`.
+Any other `pmset` or `sudo` command still requires a password. Click **Not Now** to skip; LidSleep will ask again the first time you toggle.
 
 ## ⚙️ How it works
 
 | Action | What runs |
 | --- | --- |
 | Read state | `pmset -g` → `SleepDisabled 0/1` |
-| Toggle | `sudo -n pmset -a disablesleep 0/1`, falling back to the standard admin password dialog |
+| First-run setup | `visudo -c` then install the rule, via the admin password dialog |
+| Toggle | `sudo -n pmset -a disablesleep 0/1` |
 | Launch at Login | `SMAppService.mainApp` |
 
 ## ⚠️ Heads up
@@ -76,7 +76,7 @@ Don't leave it on in a closed bag: it can get hot and drain the battery. The set
 pkill -x LidSleep
 rm -rf ~/Applications/LidSleep.app
 sudo pmset -a disablesleep 0       # restore normal lid sleep
-sudo rm -f /etc/sudoers.d/pmset    # if you added the rule
+sudo rm -f /etc/sudoers.d/pmset    # remove the password rule
 ```
 
 ## 📄 License
