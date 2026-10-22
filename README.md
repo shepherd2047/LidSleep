@@ -31,7 +31,15 @@ LidSleep is a tiny menu bar app that flips macOS's `pmset disablesleep` switch, 
 - **No Dock icon**, no windows, no background daemons
 - **~100 lines of Swift**, no dependencies, no Xcode project
 
-## 🚀 Install
+## 📦 Download
+
+Grab **LidSleep.dmg** from [Releases](https://github.com/shepherd2047/LidSleep/releases), open it and drag LidSleep into Applications.
+Universal (Apple silicon + Intel), macOS 13 or later.
+
+The app isn't notarized, so the first time macOS will refuse to open it.
+Go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
+## 🛠 Build from source
 
 You need the Xcode Command Line Tools (`xcode-select --install`).
 
@@ -42,7 +50,8 @@ cd LidSleep
 open ~/Applications/LidSleep.app
 ```
 
-`build.sh` compiles `main.swift`, bundles it into `~/Applications/LidSleep.app` and ad-hoc signs it.
+`build.sh` compiles `main.swift` for arm64 and x86_64, bundles it into `~/Applications/LidSleep.app` and ad-hoc signs it.
+`./dmg.sh` builds the same app into `dist/LidSleep.dmg`.
 
 ## 🔑 First run
 

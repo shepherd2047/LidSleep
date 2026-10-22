@@ -31,7 +31,15 @@ LidSleep 是一个很小的菜单栏应用，帮你切换 macOS 的 `pmset disab
 - **没有 Dock 图标**、没有窗口、没有后台守护进程
 - **约 100 行 Swift**，零依赖，不需要 Xcode 工程
 
-## 🚀 安装
+## 📦 下载
+
+到 [Releases](https://github.com/shepherd2047/LidSleep/releases) 下载 **LidSleep.dmg**，打开后把 LidSleep 拖进“应用程序”。
+通用版（Apple 芯片 + Intel），需要 macOS 13 及以上。
+
+App 没有做苹果公证，第一次打开时 macOS 会拦住。
+到**系统设置 → 隐私与安全性**，点**仍要打开**即可。
+
+## 🛠 从源码构建
 
 需要 Xcode Command Line Tools（`xcode-select --install`）。
 
@@ -42,7 +50,8 @@ cd LidSleep
 open ~/Applications/LidSleep.app
 ```
 
-`build.sh` 会编译 `main.swift`，打包成 `~/Applications/LidSleep.app` 并做 ad-hoc 签名。
+`build.sh` 会编译 arm64 和 x86_64 两种架构的 `main.swift`，打包成 `~/Applications/LidSleep.app` 并做 ad-hoc 签名。
+`./dmg.sh` 会把同样的 app 打包成 `dist/LidSleep.dmg`。
 
 ## 🔑 首次运行
 
